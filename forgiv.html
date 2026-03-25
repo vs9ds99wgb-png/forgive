@@ -1,0 +1,465 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>...</title> <!-- три точки вместо "Сердечное признание | Карина" -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* чтобы не выделялся текст при нажатии */
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            background: #000;
+            overflow-x: hidden;
+            font-family: 'Segoe UI', 'Poppins', 'Quicksand', system-ui, -apple-system, 'Roboto', sans-serif;
+        }
+
+        /* Основной контейнер */
+        .app {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            transition: background-image 0.4s ease-in-out;
+        }
+
+        /* ЭКРАН ТАЙМЕРА (первый слайд) */
+        .timer-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://simple-animation.ru/uploads/posts/2023-12/1703531962_41.gif');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        /* Цифры таймера (чуть меньше) */
+        .countdown-number {
+            font-size: 15vw;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 20px rgba(0,0,0,0.7), 0 0 8px rgba(255,50,50,0.8);
+            font-family: monospace;
+            letter-spacing: 4px;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            padding: 0.2em 0.5em;
+            border-radius: 60px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        /* ВТОРОЙ ЭКРАН: фон с сердцем */
+        .main-screen {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            background-image: url('https://avatars.mds.yandex.net/i?id=56655fab8b9824a963a8cfea3aa46cfc8e6f2fa7-5283751-images-thumbs&n=13');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.7s ease 0.1s, visibility 0s linear 0.8s;
+        }
+
+        /* Когда активен главный экран */
+        .app.show-main .timer-screen {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .app.show-main .main-screen {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.7s ease, visibility 0s linear 0s;
+        }
+
+        /* Контейнер для текста "Карина, прости меня" — по центру фонового сердца */
+        .heart-message-container {
+            position: relative;
+            width: 70%;
+            max-width: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.25); /* полупрозрачный для читаемости, но не скрывает сердце */
+            backdrop-filter: blur(2px);
+            border-radius: 60px;
+            padding: 0.9rem 0.7rem;
+            text-align: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,220,220,0.3);
+        }
+
+        /* Серо-белый текст */
+        .apology-text {
+            font-size: clamp(1.3rem, 6vw, 2rem);
+            font-weight: 700;
+            color: #e0e4e8;  /* серо-белый оттенок */
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+            letter-spacing: 1px;
+            line-height: 1.3;
+            font-family: 'Segoe UI', 'Quicksand', cursive;
+            word-break: keep-all;
+        }
+        
+        /* Кнопка-сердечко справа сбоку (бордово-красное) */
+        .heart-button {
+            position: fixed;
+            bottom: 6%;
+            right: 5%;
+            z-index: 200;
+            cursor: pointer;
+            filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
+            transition: transform 0.2s ease, filter 0.2s;
+        }
+
+        .heart-button:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 6px 14px rgba(139,0,0,0.6));
+        }
+
+        .heart-button:active {
+            transform: scale(0.96);
+        }
+
+        /* Сердечко бордово-красного цвета */
+        .heart-svg {
+            width: 52px;
+            height: 52px;
+            fill: #8B1A1A;  /* бордово-красный */
+            stroke: none;
+            transition: fill 0.2s;
+        }
+        
+        .heart-button:hover .heart-svg {
+            fill: #a52a2a;
+        }
+
+        /* Подсказка рядом с сердечком (не касается) */
+        .tooltip-hint {
+            position: fixed;
+            bottom: 9%;
+            right: 80px;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(8px);
+            color: #ffb7c5;
+            font-size: 0.7rem;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: 500;
+            white-space: nowrap;
+            font-family: monospace;
+            letter-spacing: 0.8px;
+            border: 1px solid #c96f6f;
+            pointer-events: none;
+            z-index: 199;
+            transition: opacity 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        /* Модальное окно с текстом признания */
+        .modal-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 1.5rem;
+        }
+
+        .modal-message.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .message-card {
+            background: linear-gradient(145deg, #2a1a2a, #1a0e1a);
+            max-width: 480px;
+            width: 90%;
+            border-radius: 48px;
+            padding: 1.6rem 1.5rem;
+            border: 1px solid #b34e6e;
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5), 0 0 0 2px rgba(180,60,90,0.3);
+            color: #fce4ec;
+            font-size: 1rem;
+            line-height: 1.5;
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            text-align: center;
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+
+        .modal-message.active .message-card {
+            transform: scale(1);
+        }
+
+        .message-card p {
+            margin-bottom: 1.2rem;
+            font-weight: 450;
+            letter-spacing: 0.2px;
+        }
+
+        .close-modal {
+            background: #9e2b2b;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 60px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 3px 10px rgba(158,43,43,0.4);
+            margin-top: 8px;
+        }
+
+        .close-modal:hover {
+            background: #c74545;
+        }
+
+        /* Адаптивность: компактнее на мобильных */
+        @media (max-width: 550px) {
+            .heart-message-container {
+                width: 80%;
+                padding: 0.7rem 0.5rem;
+            }
+            .apology-text {
+                font-size: 1.3rem;
+            }
+            .heart-svg {
+                width: 45px;
+                height: 45px;
+            }
+            .tooltip-hint {
+                right: 65px;
+                font-size: 0.6rem;
+                bottom: 8%;
+                white-space: nowrap;
+                padding: 3px 10px;
+            }
+            .heart-button {
+                bottom: 5%;
+                right: 4%;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .apology-text {
+                font-size: 1.2rem;
+            }
+            .heart-message-container {
+                width: 85%;
+            }
+            .message-card {
+                padding: 1.2rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* дополнительно: текст на главном экране строго по центру */
+        .main-screen {
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* чтобы кнопка и подсказка не пересекались, увеличиваем отступ справа для подсказки */
+        @media (min-width: 768px) {
+            .tooltip-hint {
+                right: 95px;
+                bottom: 9%;
+            }
+            .heart-button {
+                right: 4%;
+                bottom: 6%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="app" id="app">
+    <!-- Экран таймера 3-2-1 -->
+    <div class="timer-screen" id="timerScreen">
+        <div class="countdown-number" id="countdownDisplay">3</div>
+    </div>
+
+    <!-- Главный экран с фоном-сердцем и надписью "Карина, прости меня" -->
+    <div class="main-screen" id="mainScreen">
+        <div class="heart-message-container">
+            <div class="apology-text" id="apologyText">Карина, прости меня</div>
+        </div>
+    </div>
+
+    <!-- Кнопка-сердечко (бордово-красное) и подсказка (появляется только на втором экране) -->
+    <div id="heartWidget" style="display: none;">
+        <div class="tooltip-hint" id="tooltipHint">❤️ нажми на сердечко</div>
+        <div class="heart-button" id="heartBtn">
+            <svg class="heart-svg" viewBox="0 0 24 24" fill="#8B1A1A" stroke="none">
+                <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5 2,5.41 4.42,3 7.5,3c1.74,0 3.41.81 4.5,2.08C13.09,3.81 14.76,3 16.5,3 19.58,3 22,5.41 22,8.5c0,3.77-3.4,6.86-8.55,11.54L12,21.35Z"/>
+            </svg>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // Элементы
+        const appDiv = document.getElementById('app');
+        const timerScreen = document.getElementById('timerScreen');
+        const mainScreen = document.getElementById('mainScreen');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const heartWidget = document.getElementById('heartWidget');
+        const heartBtn = document.getElementById('heartBtn');
+        const tooltipHint = document.getElementById('tooltipHint');
+
+        let countdownValue = 3;
+        let timerInterval = null;
+        let isCountdownFinished = false;
+        let modal = null;
+        let modalCreated = false;
+
+        // Создание модального окна с полным текстом признания
+        function createModal() {
+            if (modalCreated) return;
+            const modalDiv = document.createElement('div');
+            modalDiv.className = 'modal-message';
+            modalDiv.id = 'loveModal';
+            modalDiv.innerHTML = `
+                <div class="message-card">
+                    <p>💖 Хочу чтобы ты знала 💖<br><br>
+                    ты единственная кто покорил моё сердце, я не искал любви она сама пришла в твоём взгляде, 
+                    в твоём голосе, в твоей улыбке, среди тысяч лиц я выбрал бы тебя снова потому что рядом с тобой 
+                    я чувствовал себя живым, я не идеальный, но мои чувства к тебе были настоящими. Иногда я мог молчать, 
+                    иногда мог ошибаться, но никогда не играл с тем, что чувствовал к тебе. Ты была не просто человеком 
+                    в моей жизни — ты была той, о ком я думал перед сном, чьё имя заставляло сердце биться быстрее. 
+                    Прости меня, спасибо, удачи.</p>
+                    <button class="close-modal" id="closeModalBtn">✨ Закрыть ✨</button>
+                </div>
+            `;
+            document.body.appendChild(modalDiv);
+            modal = document.getElementById('loveModal');
+            const closeBtn = document.getElementById('closeModalBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                });
+            }
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+            modalCreated = true;
+        }
+
+        function showLoveMessage() {
+            if (!modalCreated) createModal();
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function finishCountdownAndShowMain() {
+            if (isCountdownFinished) return;
+            isCountdownFinished = true;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            appDiv.classList.add('show-main');
+            heartWidget.style.display = 'block';
+        }
+
+        function startTimer() {
+            countdownValue = 3;
+            countdownDisplay.textContent = '3';
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                if (countdownValue > 1) {
+                    countdownValue--;
+                    countdownDisplay.textContent = countdownValue.toString();
+                } else {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    countdownDisplay.textContent = '1';
+                    setTimeout(() => {
+                        finishCountdownAndShowMain();
+                    }, 200);
+                }
+            }, 1000);
+        }
+
+        function resetToInitialState() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            isCountdownFinished = false;
+            appDiv.classList.remove('show-main');
+            heartWidget.style.display = 'none';
+            countdownDisplay.textContent = '3';
+            countdownValue = 3;
+            if (modal && modal.classList.contains('active')) {
+                modal.classList.remove('active');
+            }
+            startTimer();
+        }
+
+        function init() {
+            resetToInitialState();
+            createModal();
+            if (heartBtn) {
+                heartBtn.removeEventListener('click', showLoveMessage);
+                heartBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showLoveMessage();
+                });
+            }
+        }
+
+        window.addEventListener('load', () => {
+            init();
+        });
+        
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                resetToInitialState();
+                if (modal && modal.classList.contains('active')) modal.classList.remove('active');
+            }
+        });
+        
+        heartWidget.style.display = 'none';
+    })();
+</script>
+</body>
+</html>
